@@ -1,28 +1,53 @@
-# Financial Modeler
+Financial Modeler
 
-An end-to-end Python engine that bridges the gap between programmatic data science and traditional institutional banking. 
+A Python tool that pulls historical financial statements, computes forward projections, and generates fully linked, audit-ready Excel models (.xlsx) for 3-statement analysis and DCF valuation.
 
-This framework dynamically pulls historical equity data, runs predictive financial engines, and programmatically writes fully linked, CFI-standard 3-Statement and DCF models directly into Excel. It is built to automate the most tedious parts of quantitative equity research while preserving the strict formatting and auditability required on the desk.
+The goal is to automate the extraction and formula-building workflow in Excel while preserving standard financial formatting, dynamic cell references, and balance sheet integrity.
+Key Features
 
-## 🚀 Key Features
+    Automated Financial Ingestion: Fetches multi-year balance sheets, income statements, and cash flow statements via yfinance, along with market cap, live pricing, and historical beta.
 
-*   **Automated Data Ingestion:** Leverages the Yahoo Finance API to pull historical Income Statements, Balance Sheets, and Cash Flow Statements, alongside live market data and Beta.
-*   **Dynamic Scaling Engine:** Automatically scans historical revenue to scale the entire model output to Billions, Millions, or Thousands, ensuring the output is perfectly readable whether you are screening a mega-cap tech giant or a micro-cap pharmaceutical stock.
-*   **Institutional 3-Statement Model:** Projects 5 years of financials based on historical trailing average margins and base growth assumptions.
-*   **Dynamic Debt & Cash Waterfall:** Actively calculates cash available for debt service (CADS), automatically triggering Revolver draws for shortfalls and debt sweeps for excess cash, with dynamic Interest Expense/Income linked to beginning balances.
-*   **Discounted Cash Flow (DCF):** Calculates Unlevered Free Cash Flow (UFCF) and bridges Enterprise Value to Equity Value using both Perpetual Growth and EV/EBITDA exit multiples.
-*   **Stochastic Valuation:** Runs a 1,000-iteration Monte Carlo simulation randomizing WACC, Terminal Growth, and Revenue Growth to generate 10th, 50th, and 90th percentile target price scenarios.
+    Dynamic Magnitude Scaling: Automatically scales line items to Billions, Millions, or Thousands based on historical revenue baselines so numbers remain legible across different market caps.
 
-## 🧠 Under the Hood: The Code
+    Linked 3-Statement Model: Builds 5-year forecasts using trailing average margin and growth assumptions, maintaining dynamic links across all three statements.
 
-Building complex financial models via code introduces unique challenges, specifically regarding Excel's strict typing and circular reference errors. This project solves those through strict, object-oriented architecture:
+    Debt & Cash Waterfall: Implements cash available for debt service (CADS) logic, modeling automatic revolver draws during deficits, cash sweeps for debt paydown during surpluses, and interest expense/income based on beginning period balances.
 
-*   **Type-Safe Writing Wrapper:** Passing `NaN` or `INF` floats to `xlsxwriter` causes catastrophic compilation crashes. The `WorkbookBuilder` class utilizes a custom `safe_write()` wrapper that intercepts corrupted data, defaults it safely to `0.0`, and strictly bifurcates string values, numeric floats, and programmatic formulas.
-*   **Explicit Coordinate Mapping:** Dynamic string concatenation for Excel cell references (e.g., `chr(ord('A')+c)`) is brittle and prone to off-by-one errors. This framework abandons string math in favor of a strictly defined integer grid and `xl_rowcol_to_cell`, ensuring bulletproof mathematical linkages.
-*   **Pre-Compilation Auditing:** Before the `.xlsx` file is saved, an internal engine scans the registry of written formulas using regex boundaries to detect recursive mapping. If a cell references itself, the compilation logs a terminal warning, ensuring the final output is 100% free of circular reference loops.
+    DCF Valuation: Projects Unlevered Free Cash Flow (UFCF) and calculates Enterprise Value and Equity Value using both Perpetual Growth and EV/EBITDA multiple methods.
 
-## 💻 Tech Stack
-*   **Language:** Python
-*   **Data Manipulation:** Pandas, NumPy
-*   **Data Extraction:** `yfinance`
-*   **Compilation:** `xlsxwriter`
+    Monte Carlo Simulation: Runs 1,000 randomized iterations over WACC, terminal growth rates, and top-line growth to output 10th, 50th, and 90th percentile valuation distributions.
+
+Implementation Details
+
+Programmatically generating linked financial models in Excel creates practical edge cases around formula syntax, grid offsets, and type handling. This engine addresses them through several explicit design choices:
+
+    Formula & Type Sanitization: Passing unhandled NaN or inf values to xlsxwriter breaks workbook creation. The WorkbookBuilder class uses a safe_write() helper that coerces missing numerical data to 0.0 while maintaining strict separation between numeric floats, labels, and raw Excel formula strings.
+
+    Coordinate-Based Formula Generation: Replaces fragile string concatenation (e.g., manual column character math) with coordinate-based cell addressing via xl_rowcol_to_cell, ensuring offsets and relative references stay consistent across statements.
+
+    Circular Reference Checks: Pre-scans generated formulas prior to workbook write using regex pattern matching on target cell coordinates to flag unintended self-referencing loops before compilation.
+
+Tech Stack
+
+    Python
+
+    Data Processing: Pandas, NumPy
+
+    Market Data: yfinance
+
+    Excel Engine: xlsxwriter
+
+Getting Started
+Prerequisites
+Bash
+
+pip install pandas numpy yfinance xlsxwriter
+
+Usage
+Python
+
+from modeler import FinancialModeler
+
+# Initialize and generate workbook
+model = FinancialModeler(ticker="AAPL")
+model.build(output_path="AAPL_valuation_model.xlsx")
